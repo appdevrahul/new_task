@@ -1,30 +1,28 @@
 on:
   push:
     branches:
-      -master
-      -
+      - main
+      - release/*
 name: Build My App
 
 jobs:
-  build:
-    name: Build and Release new apk
-    runs-on: windows 10
+  test:
+    name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node_version: ['18.x', '20.x']
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
     steps:
-      - uses: action/checkout@v3
-      - uses: action/setup-java@v2
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v4
         with:
-          distribution: 'zulu'
-          java-version: '11'
+          node-version: ${{ matrix.node_version }}
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-      - run: flutter pub get
-      - run: flutter build apk --release --split-per-abi
-
-      - name: push to release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "build/app/outputs/apk/release/*"
-          tag: v0.0.1
-          token: ${{ secrets.TOKEN }}
+      - name: npm install, build and test
+        run: |
+          npm install
+          npm run build --if-present
+          npm test
